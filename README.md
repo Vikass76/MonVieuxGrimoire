@@ -1,10 +1,14 @@
-# Mon vieux Grimoire
+# 📚 Mon Vieux Grimoire
 
+Projet OpenClassrooms – Back-end d’un site de notation de livres.
 
-## Comment lancer le projet ? 
+---
 
-### Avec npm
+## 🚀 Installation
 
-Faites la commande `npm install` pour installer les dépendances puis `npm start` pour lancer le projet. 
-
-Le projet a été testé sur node 19. 
+```bash
+git clone <url-du-repo>
+cd backend
+npm install
+npm start   # ou npm run dev
+```
