@@ -159,37 +159,51 @@ router.delete("/:id", auth, async (req, res) => {
 /* 1 note/user, 0..5, interdit de noter son propre livre */
 router.post("/:id/rating", auth, async (req, res) => {
   try {
+    // ID manquant/incorrect
+    if (!req.params.id || req.params.id === "undefined") {
+      return res.status(400).json({ message: "ID livre manquant", book: null });
+    }
+
+    // Récup livre
+    const book = await Book.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ message: "Livre introuvable", book: null });
+    }
+
+    // Auteur ne peut pas noter
+    if (String(book.userId) === String(req.auth.userId)) {
+      return res
+        .status(403)
+        .json({ message: "Impossible de noter son propre livre", book });
+    }
+
+    // Vérif note
     const g = Number(req.body.grade ?? req.body.rating);
     if (!Number.isFinite(g) || g < 0 || g > 5) {
       return res
         .status(400)
-        .json({ message: "La note doit être entre 0 et 5" });
+        .json({ message: "La note doit être entre 0 et 5", book });
     }
 
-    const book = await Book.findById(req.params.id);
-    if (!book) return res.status(404).json({ message: "Livre introuvable" });
-
-    if (String(book.userId) === String(req.auth.userId)) {
-      return res
-        .status(403)
-        .json({ message: "Impossible de noter son propre livre" });
-    }
-
+    // Un seul vote / user
     if (
       book.ratings.some((r) => String(r.userId) === String(req.auth.userId))
     ) {
-      return res.status(400).json({ message: "Vous avez déjà noté ce livre" });
+      return res
+        .status(400)
+        .json({ message: "Vous avez déjà noté ce livre", book });
     }
 
+    // Ajout de la note + moyenne
     book.ratings.push({ userId: String(req.auth.userId), grade: g });
-
     const sum = book.ratings.reduce((s, r) => s + r.grade, 0);
     book.averageRating = Math.round((sum / book.ratings.length) * 10) / 10;
 
-    await book.save();
-    res.status(201).json(book);
-  } catch {
-    res.status(400).json({ message: "Requête invalide" });
+    const saved = await book.save();
+    return res.status(201).json(saved);
+  } catch (e) {
+    console.error("Rating error:", e);
+    return res.status(400).json({ message: "Requête invalide", book: null });
   }
 });
 
